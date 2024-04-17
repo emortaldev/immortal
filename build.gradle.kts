@@ -1,5 +1,6 @@
 plugins {
     id("java")
+    `maven-publish`
 }
 
 group = "dev.emortal"
@@ -23,4 +24,30 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "development"
+            url = uri("https://repo.emortal.dev/snapshots")
+            credentials {
+                username = System.getenv("MAVEN_USERNAME")
+                password = System.getenv("MAVEN_SECRET")
+            }
+        }
+    }
+
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = "dev.emortal"
+            artifactId = "immortal"
+
+            val commitHash = System.getenv("COMMIT_HASH_SHORT")
+            val releaseVersion = System.getenv("RELEASE_VERSION")
+            version = commitHash ?: releaseVersion ?: "local"
+
+            from(components["java"])
+        }
+    }
 }
