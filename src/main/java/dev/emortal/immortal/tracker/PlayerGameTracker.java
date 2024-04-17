@@ -22,15 +22,15 @@ public class PlayerGameTracker implements Tracker {
         this.playerGameMap.put(uuid, game);
     }
 
-    public @Nullable Set<Game> findGames(Class<Game> gameClass) {
-        return gameMap.get(gameClass);
-    }
-
     @Override
-    public @Nullable Set<Game> getAllGames() {
+    public @Nullable Set<Game> getGames() {
         Set<Game> games = new HashSet<>();
         gameMap.values().forEach(games::addAll);
         return games;
+    }
+
+    public @Nullable Set<Game> getGames(Class<Game> gameClass) {
+        return gameMap.get(gameClass);
     }
 
     public void removePlayer(UUID uuid) {

@@ -19,8 +19,8 @@ public interface Tracker {
         setGame(player.getUuid(), game);
     }
 
-    @Nullable Set<Game> findGames(Class<Game> gameClass);
-    @Nullable Set<Game> getAllGames();
+    @Nullable Set<Game> getGames();
+    @Nullable Set<Game> getGames(Class<Game> gameClass);
 
     void removePlayer(UUID uuid);
     default void removePlayer(Player player) {
