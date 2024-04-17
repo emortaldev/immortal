@@ -1,8 +1,8 @@
 package dev.emortal.immortal.demo;
 
 import dev.emortal.immortal.tracker.PlayerGameTracker;
+import dev.emortal.immortal.tracker.Tracker;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.command.CommandManager;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
@@ -13,7 +13,7 @@ public class Main {
     public static void main(String[] args) {
         MinecraftServer server = MinecraftServer.init();
 
-        PlayerGameTracker gameTracker = new PlayerGameTracker();
+        Tracker tracker = new PlayerGameTracker();
 
         // Create lobby lobbyInstance with a flat generator
         InstanceContainer lobbyInstance = MinecraftServer.getInstanceManager().createInstanceContainer();
@@ -28,8 +28,7 @@ public class Main {
             e.getPlayer().setRespawnPoint(new Pos(0, 2, 0));
         });
 
-        CommandManager commandManager = MinecraftServer.getCommandManager();
-        commandManager.register(new StartGameCommand(gameTracker, lobbyInstance));
+        new Lobby(tracker, lobbyInstance);
 
         server.start("0.0.0.0", 25565);
     }

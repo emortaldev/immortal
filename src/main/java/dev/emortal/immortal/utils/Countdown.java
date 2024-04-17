@@ -33,4 +33,8 @@ public class Countdown {
         });
     }
 
+    private Countdown() {
+
+    }
+
 }
