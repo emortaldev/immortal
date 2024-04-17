@@ -1,6 +1,6 @@
 package dev.emortal.immortal.demo;
 
-import dev.emortal.immortal.PlayerGameTracker;
+import dev.emortal.immortal.tracker.PlayerGameTracker;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
 import net.minestom.server.coordinate.Pos;

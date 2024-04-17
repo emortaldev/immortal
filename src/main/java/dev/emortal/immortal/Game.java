@@ -1,9 +1,11 @@
 package dev.emortal.immortal;
 
+import dev.emortal.immortal.tracker.Tracker;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.EventNode;
+import net.minestom.server.event.instance.AddEntityToInstanceEvent;
 import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent;
 import net.minestom.server.event.trait.InstanceEvent;
 import net.minestom.server.instance.Instance;
@@ -20,24 +22,34 @@ public abstract class Game {
 
     private static final Tag<Boolean> IMMORTAL_INSTANCE_TAG = Tag.Boolean("immortalInstance");
 
-    private final @NotNull PlayerGameTracker playerGameTracker;
-    private final @NotNull Set<Player> players;
+    private final @NotNull Tracker tracker;
+    private final @NotNull Set<Player> initialPlayers;
     private final @NotNull Instance instance; // TODO: Support multiple instances in the future
 
-    public Game(@NotNull PlayerGameTracker playerGameTracker, @NotNull Set<Player> players) {
-        this.playerGameTracker = playerGameTracker;
-        this.players = players;
+    public Game(@NotNull Tracker tracker, @NotNull Set<Player> initialPlayers) {
+        this.tracker = tracker;
+        this.initialPlayers = initialPlayers;
 
         this.instance = createInstance();
         this.instance.setTag(IMMORTAL_INSTANCE_TAG, true);
 
+        tracker.registerGame(this);
+
+        getEventNode().addListener(AddEntityToInstanceEvent.class, e -> {
+            if (!(e.getEntity() instanceof Player player)) return;
+
+            addPlayer(player);
+        });
+
         getEventNode().addListener(RemoveEntityFromInstanceEvent.class, e -> {
             if (!(e.getEntity() instanceof Player player)) return;
 
-            this.playerGameTracker.removePlayer(player);
-            players.remove(player);
+            this.tracker.removePlayer(player);
+            initialPlayers.remove(player);
             onPlayerLeave(player, true);
 
+
+            // Unregister instance
             int playersRemaining = e.getInstance().getPlayers().size() - 1;
             if (playersRemaining == 0) {
                 if (!e.getInstance().hasTag(IMMORTAL_INSTANCE_TAG)) return;
@@ -53,11 +65,19 @@ public abstract class Game {
         });
     }
 
-    public void removePlayer(Player player) {
-        boolean successful = players.remove(player);
+    private void addPlayer(Player player) {
+        boolean successful = !getPlayers().contains(player);
         if (!successful) return;
 
-        this.playerGameTracker.removePlayer(player);
+        this.tracker.setGame(player, this);
+        onPlayerJoin(player);
+    }
+
+    private void removePlayer(Player player) {
+        boolean successful = getPlayers().contains(player);
+        if (!successful) return;
+
+        this.tracker.removePlayer(player);
         onPlayerLeave(player, false);
     }
 
@@ -65,22 +85,27 @@ public abstract class Game {
      * Teleports all the players to the instance, then calls {@link #onStart()}
      */
     public void start() {
-        for (Player player : this.players) {
+        for (Player player : this.initialPlayers) {
             if (player.getPlayerConnection().getConnectionState() != ConnectionState.PLAY) {
                 throw new IllegalStateException("All players must be in the play state to start a game");
             }
         }
 
         List<CompletableFuture<Void>> futures = new ArrayList<>();
-        for (Player player : this.players) {
-            CompletableFuture<Void> future = player.setInstance(this.instance, pickSpawnPoint(player));
-            futures.add(future);
-
+        for (Player player : this.initialPlayers) {
             // Remove player from previous game if they were in one
-            Game previousGame = playerGameTracker.getGame(player);
+            Game previousGame = tracker.getGame(player);
             if (previousGame != null) {
                 previousGame.removePlayer(player);
             }
+
+            CompletableFuture<Void> future = player.setInstance(this.instance, pickSpawnPoint(player))
+                    .thenRun(() -> onPlayerJoin(player))
+                    .exceptionally(e -> {
+                        MinecraftServer.getExceptionManager().handleException(e);
+                        return null;
+                    });
+            futures.add(future);
         }
 
         // Wait for all players to have joined the instance
@@ -94,10 +119,15 @@ public abstract class Game {
 
     /**
      * Called when the game is started by {@link #start()}
-     * Use this to initialize your players, e.g. setting their gamemode, team
-     * or to register event listeners
+     * Consider using this to register event listeners and general game logic
      */
     public abstract void onStart();
+
+    /**
+     * Called when a player joins the game, via {@link #addPlayer(Player)}.
+     * Use this to initialize the player, e.g. setting their gamemode, team
+     */
+    public abstract void onPlayerJoin(Player player);
 
     /**
      * Called when a player leaves the game, via {@link #removePlayer(Player)} or by disconnecting.
@@ -107,6 +137,7 @@ public abstract class Game {
     public abstract void onPlayerLeave(Player player, boolean disconnected);
 
     public void end() {
+        tracker.unregisterGame(this);
         onEnd();
     }
 

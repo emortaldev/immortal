@@ -9,12 +9,13 @@ import java.util.function.Supplier;
 
 public class Countdown {
 
-    public static void startCountdown(Scheduler scheduler, int seconds, Consumer<Integer> runnable) {
+    public static void startCountdown(Scheduler scheduler, int seconds, Consumer<Integer> runnable, Runnable done) {
         scheduler.submitTask(new Supplier<>() {
             int secondsLeft = seconds;
             @Override
             public TaskSchedule get() {
                 if (secondsLeft == 0) {
+                    done.run();
                     return TaskSchedule.stop();
                 }
 

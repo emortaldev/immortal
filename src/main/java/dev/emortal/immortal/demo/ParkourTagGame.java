@@ -1,7 +1,7 @@
 package dev.emortal.immortal.demo;
 
 import dev.emortal.immortal.Game;
-import dev.emortal.immortal.PlayerGameTracker;
+import dev.emortal.immortal.tracker.Tracker;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -35,26 +35,20 @@ public class ParkourTagGame extends Game {
 
     private final Instance lobbyInstance;
 
-    public ParkourTagGame(@NotNull PlayerGameTracker playerGameTracker, @NotNull Set<Player> players, @NotNull Instance lobbyInstance) {
-        super(playerGameTracker, players);
+    public ParkourTagGame(@NotNull Tracker tracker, @NotNull Set<Player> players, @NotNull Instance lobbyInstance) {
+        super(tracker, players);
 
         this.lobbyInstance = lobbyInstance;
     }
 
     @Override
     public void onStart() {
-        for (Player player : getPlayers()) {
-            player.setTeam(ALIVE_TEAM);
-            player.setGameMode(GameMode.ADVENTURE);
-            player.setInvisible(false);
-        }
-
         registerEvents();
     }
 
     private void registerEvents() {
-        // Make sure to use instance.eventNode() (which getEventNode() does for you) as it only listen to events happening
-        // in the game's instance (otherwise you may receive events from other games)
+        // Make sure to use getEventNode() as it only listens to events happening in this game
+        // (otherwise you may receive events from other games)
 
         getEventNode().addListener(EntityAttackEvent.class, e -> {
             // Ignore non-players
@@ -111,6 +105,13 @@ public class ParkourTagGame extends Game {
         getInstance().scheduler().buildTask(() -> {
             end();
         }).delay(TaskSchedule.tick(ServerFlag.SERVER_TICKS_PER_SECOND * 6)).schedule();
+    }
+
+    @Override
+    public void onPlayerJoin(Player player) {
+        player.setTeam(ALIVE_TEAM);
+        player.setGameMode(GameMode.ADVENTURE);
+        player.setInvisible(false);
     }
 
     @Override
