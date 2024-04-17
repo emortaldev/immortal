@@ -20,6 +20,7 @@ public interface Tracker {
     }
 
     @Nullable Set<Game> findGames(Class<Game> gameClass);
+    @Nullable Set<Game> getAllGames();
 
     void removePlayer(UUID uuid);
     default void removePlayer(Player player) {
