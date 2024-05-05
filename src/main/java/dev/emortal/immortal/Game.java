@@ -9,13 +9,13 @@ import net.minestom.server.event.instance.AddEntityToInstanceEvent;
 import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent;
 import net.minestom.server.event.trait.InstanceEvent;
 import net.minestom.server.instance.Instance;
-import net.minestom.server.network.ConnectionState;
 import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public abstract class Game {
@@ -23,12 +23,12 @@ public abstract class Game {
     private static final Tag<Boolean> IMMORTAL_INSTANCE_TAG = Tag.Boolean("immortalInstance");
 
     private final @NotNull Tracker tracker;
-    private final @NotNull Set<Player> initialPlayers;
+    private final @NotNull Collection<Player> initialPlayers;
     private final @NotNull Instance instance; // TODO: Support multiple instances in the future
 
-    public Game(@NotNull Tracker tracker, @NotNull Set<Player> initialPlayers) {
+    public Game(@NotNull Tracker tracker, @NotNull Collection<Player> initialPlayers) {
         this.tracker = tracker;
-        this.initialPlayers = initialPlayers;
+        this.initialPlayers = new HashSet<>(initialPlayers);
 
         this.instance = createInstance();
         this.instance.setTag(IMMORTAL_INSTANCE_TAG, true);
@@ -85,20 +85,15 @@ public abstract class Game {
      * Teleports all the players to the instance, then calls {@link #onStart()}
      */
     public void start() {
-        for (Player player : this.initialPlayers) {
-            if (player.getPlayerConnection().getConnectionState() != ConnectionState.PLAY) {
-                throw new IllegalStateException("All players must be in the play state to start a game");
-            }
-        }
-
         List<CompletableFuture<Void>> futures = new ArrayList<>();
         for (Player player : this.initialPlayers) {
             // Remove player from previous game if they were in one
             Game previousGame = tracker.getGame(player);
-            if (previousGame != null) {
+            if (previousGame != null && previousGame != this) {
                 previousGame.removePlayer(player);
             }
 
+            if (this.instance.equals(player.getInstance())) continue;
             CompletableFuture<Void> future = player.setInstance(this.instance, pickSpawnPoint(player))
                     .thenRun(() -> onPlayerJoin(player))
                     .exceptionally(e -> {
@@ -157,7 +152,7 @@ public abstract class Game {
      */
     public abstract @NotNull Instance createInstance();
 
-    public @NotNull Set<Player> getPlayers() {
+    public @NotNull Collection<Player> getPlayers() {
         return getInstance().getPlayers();
     }
 
