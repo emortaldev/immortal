@@ -156,6 +156,10 @@ public abstract class Game {
         return getInstance().getPlayers();
     }
 
+    public @NotNull Collection<Player> getInitialPlayers() {
+        return initialPlayers;
+    }
+
     public @NotNull Instance getInstance() {
         return instance;
     }
