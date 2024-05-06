@@ -45,7 +45,7 @@ public abstract class Game {
             if (!(e.getEntity() instanceof Player player)) return;
 
             this.tracker.removePlayer(player);
-            initialPlayers.remove(player);
+            this.initialPlayers.remove(player);
             onPlayerLeave(player, true);
 
 
