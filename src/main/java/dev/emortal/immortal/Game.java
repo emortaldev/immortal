@@ -26,6 +26,18 @@ public abstract class Game {
     private final @NotNull Collection<Player> initialPlayers;
     private final @NotNull Instance instance; // TODO: Support multiple instances in the future
 
+    public Game(@NotNull Tracker tracker, @NotNull Collection<Player> initialPlayers, @NotNull Instance instance) {
+        this.tracker = tracker;
+        this.initialPlayers = new HashSet<>(initialPlayers);
+
+        this.instance = instance;
+        this.instance.setTag(IMMORTAL_INSTANCE_TAG, true);
+
+        tracker.registerGame(this);
+
+        registerEvents();
+    }
+
     public Game(@NotNull Tracker tracker, @NotNull Collection<Player> initialPlayers) {
         this.tracker = tracker;
         this.initialPlayers = new HashSet<>(initialPlayers);
@@ -35,6 +47,10 @@ public abstract class Game {
 
         tracker.registerGame(this);
 
+        registerEvents();
+    }
+
+    private void registerEvents() {
         getEventNode().addListener(AddEntityToInstanceEvent.class, e -> {
             if (!(e.getEntity() instanceof Player player)) return;
 
